@@ -1,42 +1,24 @@
-import 'dotenv/config';
-import express, { Request, Response, NextFunction } from "express";
-import helmet from "helmet";
-import compression from "compression";
-import cors from "cors";
-// import bodyParser from 'body-parser';
+import express from "express";
+import dotenv from "dotenv";
+import userRoutes from "@routes/user-route";
+import { requestTimer } from "@middlewares/request-timer";
+import { connectDB } from "@config/data-source";
 
-import { limiter } from "./middlewares/rateLimiter";
-import isAuth from "./middlewares/isAuth";
-import authorise from './middlewares/authorise';
-import adminRoutes from "./routes/v1/admin";
-import authRoutes from "./routes/v1/auth";
+dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.use(helmet());
+// Middleware
+app.use(express.json());
+app.use(requestTimer);
 
-app.use(express.json()); // application/json
-// app.use(bodyParser.json());
-app.use(express.urlencoded({ extended: true }));
+// Routes
+app.use("/api/users", userRoutes);
 
-
-app.use(compression());
-app.use(cors());
-// app.options("*", cors());
-
-app.use(limiter);
-
-app.use("/api/v1", authRoutes);
-app.use("/api/v1", isAuth, authorise(false, "user"), adminRoutes);
-
-const PORT = process.env.PORT || 8080;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
-});
-
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  const status = err.status || 500;
-  const message = err.message;
-  res.status(status).json({ error: message });
+// Start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
 });
